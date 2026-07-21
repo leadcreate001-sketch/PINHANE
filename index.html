@@ -288,12 +288,40 @@ body.event-active #ticker-bar { animation: alertPulse 1s infinite; }
 }
 .stay-btn { margin-top: 10px; width: 100%; padding: 11px; border-radius: 12px; background: none; border: 1px solid var(--line); color: var(--sub); cursor: pointer; }
 
+/* ---------- 初回チュートリアル ---------- */
+/* 対象を指す吹き出し。位置と矢印の向きはJS側が「対象に重ならない空いている側」を選んで決める。 */
+.tut-bubble { position: fixed; z-index: 65; visibility: hidden; }
+.tut-box {
+  position: relative; background: var(--panel); color: var(--text);
+  border: 2px solid var(--gold); border-radius: 12px; padding: 11px 12px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .6); font-size: 12px;
+}
+.tut-head { font-weight: bold; color: var(--gold); font-size: 12px; margin-bottom: 6px; }
+.tut-text { line-height: 1.65; color: var(--text); }
+.tut-text b { color: var(--gold); }
+.tut-btns { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.tut-next {
+  flex: 1; background: linear-gradient(135deg, #f59e0b, #d97706); color: #1f1300;
+  border: none; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: bold; cursor: pointer;
+}
+.tut-skip { background: none; border: none; color: var(--sub); font-size: 11px; padding: 4px 6px; cursor: pointer; }
+.tut-arrow { position: absolute; width: 0; height: 0; }
+/* 案内中の対象を光らせる。位置に影響しないよう outline と box-shadow だけで表現する。 */
+.tut-hl { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 0 6px rgba(251, 191, 36, .22); border-radius: 10px; }
+
 /* ---------- その他 ---------- */
 #version { position: fixed; right: 8px; bottom: 30px; font-size: 10px; color: #475569; z-index: 21; }
 
 /* ---------- モバイル ---------- */
 @media (max-width: 700px) {
   header h1 .subtitle { display: none; }
+  /* ヘッダーが横幅に収まらず右端が切れていた（375px幅で実測390px）。
+     文字ラベルを畳み、余白・字間も詰めて1行に収める。 */
+  .btn-label { display: none; }
+  header { gap: 5px; padding: 0 8px; }
+  header h1 { font-size: 14px; letter-spacing: 0; }
+  .icon-btn { padding: 3px 6px; font-size: 11px; }
+  .full-link { padding: 2px 7px; font-size: 10px; }
   #hud { width: 180px; padding: 9px 11px; top: 50px; left: 8px; }
   #cash { font-size: 20px; }
   .stat-row { font-size: 11px; }
@@ -406,6 +434,24 @@ const STRINGS = {
     bgmOffLabel: 'OFF',
     autoActive: '🤖 自動回収中 残り{time}（手数料{fee}%）',
     autoExpired: '自動回収契約が終了しました。手動回収に戻ります',
+    help: '❓',
+    helpTitle: '遊び方をもう一度見る',
+  },
+  // 初回チュートリアル。専務🕴️が「稼ぐ→雇う→回収→強化⇔悪評」のループを一周させる。
+  tutorial: {
+    speaker: '🕴️ 専務',
+    next: '次へ ▶',
+    start: 'はじめる！',
+    skip: 'スキップ',
+    // 吹き出しは innerHTML で描くため、強調はマークダウンではなく <b> を使う
+    steps: [
+      '社長、元手がありません。まずは🛵ご自分で配達を。長押しで連続で稼げます。人を雇う金は、そこからです。',
+      '種銭ができたら「雇用」。労働者の売上のうち、決められた%だけが<b>あなたの取り分</b>になります。差額は……まあ、経費です。',
+      'あなたの取り分は金庫に溜まります。<b>満杯になると、それ以上は増えません。</b>地球に落ちた💰を指でなぞって回収してください。',
+      '「強化」の規約改定でピンハネ率を引き上げられます。取り分は増えますが——世間の目も厳しくなります。',
+      'それが悪評度です。<b>上がりすぎると労働者が辞め、事件も増えます。</b>PR施策で下げられますので、ほどほどに。',
+      '島をタップすれば出向やリストラの管理ができます。ドラッグで地球は回り、昇格すれば新しい地区が開く。さあ、始めましょう社長。',
+    ],
   },
   cta: {
     title: 'ここから先は、完全版の領域',
@@ -1609,9 +1655,10 @@ if (typeof module !== 'undefined') module.exports = Game;
   <div class="header-spacer"></div>
   <span class="renown-badge" id="renown-badge" style="display:none"></span>
   ${window.IS_FULL ? '' : `<a class="full-link" id="full-link" href="#">👑 ${S.ui.fullLink}</a>`}
+  <button class="icon-btn" id="help-btn" title="${S.ui.helpTitle}">${S.ui.help}</button>
   <button class="icon-btn" id="bgm-btn"></button>
   <button class="icon-btn" id="mute-btn">🔊</button>
-  <button class="icon-btn" id="reset-btn">${S.ui.reset}</button>
+  <button class="icon-btn" id="reset-btn">🗑️<span class="btn-label"> ${S.ui.reset}</span></button>
 </header>
 <canvas id="planet"></canvas>
 <div id="hud">
@@ -1622,12 +1669,12 @@ if (typeof module !== 'undefined') module.exports = Game;
   <div class="stat-row optional"><span class="label">${S.ui.pinhaneRate}（実効）</span><span id="effrate"></span></div>
   <div class="stat-row optional"><span class="label">${S.ui.exploited}</span><span id="exploited"></span></div>
   <div id="buff-line"></div>
-  <div class="vault-wrap">
+  <div class="vault-wrap" id="vault-wrap">
     <div class="vault-head"><span>${S.ui.vault}</span><span id="vault-num"></span></div>
     <div class="vault-track"><div id="vault-fill"></div></div>
     <div id="vault-full-warn"></div>
   </div>
-  <div class="noto-wrap">
+  <div class="noto-wrap" id="noto-wrap">
     <div class="vault-head"><span>${S.ui.noto}</span><span id="noto-num"></span></div>
     <div class="noto-track"><div id="noto-fill"></div></div>
   </div>
@@ -2171,6 +2218,88 @@ if (typeof module !== 'undefined') module.exports = Game;
   const TYPE_INDEX = {};
   D.workers.forEach((w, i) => { TYPE_INDEX[w.id] = i; });
 
+  // canvasの絵文字フォント。従来は Windows 専用の "Segoe UI Emoji" しか挙げていなかったため、
+  // iOSではカラー字形に解決されず、直前の fillStyle（大陸色やワーカーのドット色）を引き継いだ
+  // モノクロ字形＝シルエットで描かれていた。各OSのカラー絵文字フォントを先頭から明示する。
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif';
+
+  // 絵文字が描けない端末で建物を図形に差し替えるときの形状。DISTRICT_POOLS の全絵文字を割り当てる。
+  const EMOJI_SHAPE = {
+    '🏠': 'house', '🏚️': 'house',
+    '🏪': 'shop', '🏬': 'shop', '🏫': 'shop', '🎰': 'shop',
+    '🏭': 'plant', '🏗️': 'plant', '📦': 'plant',
+    '🏨': 'tower', '🌆': 'tower', '🏢': 'tower', '🗼': 'tower', '🛸': 'tower',
+  };
+
+  // カラー絵文字が「実際に描けたか」をピクセルで実測する。描けない端末では建物を図形描画へ
+  // 自動で切り替え、原因が何であれ必ず色付きの建物が見えるようにする（手元でiOSを再現できないため）。
+  // 切り分け用に ?vector=1 で強制的に図形描画、?vector=0 で強制的に絵文字描画にできる。
+  const forcedVector = /[?&]vector=([01])/.exec(location.search);
+  let colorEmojiOK = forcedVector ? forcedVector[1] === '0' : true;   // 実測が済むまでは絵文字で描く
+  function detectColorEmoji() {
+    if (forcedVector) return forcedVector[1] === '0';
+    try {
+      const c = document.createElement('canvas');
+      c.width = 24; c.height = 24;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `18px ${EMOJI_FONT}`;
+      g.fillStyle = '#000';
+      g.fillText('🏠', 12, 12);
+      const d = g.getImageData(0, 0, 24, 24).data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 40) continue;                                    // 透明部分は無視
+        const r = d[i], gg = d[i + 1], b = d[i + 2];
+        if (Math.max(r, gg, b) - Math.min(r, gg, b) > 28) return true;  // 彩度あり＝カラー字形で描けている
+      }
+      return false;                                                     // 真っ黒＝モノクロ字形しか出せていない
+    } catch (e) { return true; }                                        // 判定不能な環境では従来どおり絵文字
+  }
+  // フォント確定前だと誤判定するため fonts.ready 後に実行し、「描けない」と出たときだけ後追いで
+  // もう一度確かめる（遅れてカラー絵文字が使えるようになる端末対策）。
+  const runDetect = () => { colorEmojiOK = detectColorEmoji(); };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(runDetect, runDetect);
+  else setTimeout(runDetect, 300);
+  setTimeout(() => { if (!colorEmojiOK) colorEmojiOK = detectColorEmoji(); }, 2500);
+
+  // 絵文字が使えない端末向けの建物描画。壁＋屋根＋窓を図形で描くので端末差が出ない。
+  // x, y は絵文字と同じ基準（textAlign=center / textBaseline=middle のセル中心）。
+  const VECTOR_STYLE = {
+    house: { wall: '#fde68a', roof: '#b45309', floors: 1, wide: 0.84 },
+    shop:  { wall: '#fed7aa', roof: '#c2410c', floors: 2, wide: 0.96 },
+    plant: { wall: '#bfdbfe', roof: '#1d4ed8', floors: 2, wide: 1.04 },
+    tower: { wall: '#c7d2fe', roof: '#3730a3', floors: 5, wide: 0.70 },
+  };
+  function drawVectorBuilding(x, y, size, shape) {
+    const s = VECTOR_STYLE[shape] || VECTOR_STYLE.house;
+    const w = size * s.wide, h = size * 0.9;
+    const left = x - w / 2, top = y + size * 0.46 - h;   // 足元を絵文字セルの下端に合わせる
+    ctx.save();
+    ctx.fillStyle = s.wall;
+    ctx.fillRect(left, top, w, h);
+    ctx.fillStyle = s.roof;
+    if (shape === 'house') {                             // 低層は三角屋根、それ以外は陸屋根で見分ける
+      ctx.beginPath();
+      ctx.moveTo(left - w * 0.09, top);
+      ctx.lineTo(x, top - h * 0.32);
+      ctx.lineTo(left + w + w * 0.09, top);
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.fillRect(left - w * 0.05, top - h * 0.08, w * 1.1, h * 0.08);
+    }
+    const cols = Math.max(2, Math.round(w / (size * 0.26)));
+    const gapX = w / (cols + 1), gapY = h / (s.floors + 1);
+    const ww = Math.max(1.1, gapX * 0.52), wh = Math.max(1.1, gapY * 0.5);
+    ctx.fillStyle = '#1e3a5f';
+    for (let r = 1; r <= s.floors; r++) {
+      for (let c = 1; c <= cols; c++) ctx.fillRect(left + gapX * c - ww / 2, top + gapY * r - wh / 2, ww, wh);
+    }
+    ctx.strokeStyle = 'rgba(15,23,42,0.65)';
+    ctx.lineWidth = Math.max(0.6, size * 0.035);
+    ctx.strokeRect(left, top, w, h);
+    ctx.restore();
+  }
+
   // 大陸（=地区）: 決定的な地形ブロブ＋建物スロット
   function srand(seed) { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
   const CONTINENTS = [
@@ -2405,9 +2534,12 @@ if (typeof module !== 'undefined') module.exports = Game;
     }
     ctx.globalAlpha = 1;
     const phi = cyc * TAU - 1.57;
-    ctx.font = '22px "Segoe UI Emoji", serif';
+    ctx.font = `22px ${EMOJI_FONT}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // fillStyle は必ず明示する。省くとモノクロ字形の端末で直前の星の色をそのまま引き継ぐ。
+    ctx.fillStyle = '#fde68a';
     ctx.fillText('☀️', cx + Math.cos(phi) * (R + 60), cy + Math.sin(phi) * (R + 60));
+    ctx.fillStyle = '#e2e8f0';
     ctx.fillText('🌙', cx + Math.cos(phi + 3.14) * (R + 60), cy + Math.sin(phi + 3.14) * (R + 60));
 
     // --- 大気の光 ---
@@ -2496,29 +2628,34 @@ if (typeof module !== 'undefined') module.exports = Game;
       for (let j = 0; j < bn; j++) {
         const s = c.slots[j];
         const p = project(s.lat, s.lon);
-        if (p.z > 0.05) sprites.push({ p, emoji: s.emoji, size: s.size });
+        // shape を持つスプライトは、絵文字が描けない端末で図形の建物に差し替わる
+        if (p.z > 0.05) sprites.push({ p, emoji: s.emoji, size: s.size, shape: EMOJI_SHAPE[s.emoji], color: '#e2e8f0' });
       }
       if (!districtUnlocked(d)) {
         const p = project(c.lat, c.lon);
         if (p.z > 0.05) {
-          sprites.push({ p, emoji: (D.ranks[d].fullOnly && !window.IS_FULL) ? '👑' : '🔒', size: 22 });
+          const locked = D.ranks[d].fullOnly && !window.IS_FULL;
+          sprites.push({ p, emoji: locked ? '👑' : '🔒', size: 22, color: locked ? '#fbbf24' : '#cbd5e1' });
         }
       }
     }
     for (const wk of workers3d) {
       if (wk.k >= 14) continue;
       const p = project(wk.lat, wk.lon);
-      if (p.z > 0.05) sprites.push({ p, emoji: D.workers[TYPE_INDEX[wk.type]].emoji, size: 15, ref: wk });
+      if (p.z > 0.05) sprites.push({ p, emoji: D.workers[TYPE_INDEX[wk.type]].emoji, size: 15, ref: wk, color: TYPE_COLOR[wk.type] });
     }
     const tMs = performance.now();
     for (const c of coins) {
       const p = coinPos(c, tMs);
-      if (p.z > 0.05) sprites.push({ p, emoji: '💰', size: 19 });
+      if (p.z > 0.05) sprites.push({ p, emoji: '💰', size: 19, color: '#fbbf24' });
     }
     sprites.sort((a, b) => a.p.z - b.p.z);
     for (const s of sprites) {
-      const sc = 0.55 + 0.5 * s.p.z;
-      ctx.font = `${Math.round(s.size * sc)}px "Segoe UI Emoji", serif`;
+      const px = Math.round(s.size * (0.55 + 0.5 * s.p.z));
+      if (!colorEmojiOK && s.shape) { drawVectorBuilding(s.p.x, s.p.y, px, s.shape); continue; }
+      ctx.font = `${px}px ${EMOJI_FONT}`;
+      // モノクロ字形の端末でも大陸色やワーカーのドット色を引き継がないよう毎回明示する
+      ctx.fillStyle = s.color;
       ctx.fillText(s.emoji, s.p.x, s.p.y);
     }
 
@@ -2556,13 +2693,16 @@ if (typeof module !== 'undefined') module.exports = Game;
         ctx.translate(gold.x, gold.y);
         if (gold.vx > 0) ctx.scale(-1, 1);               // 🚚は既定で左向き→右進行時は反転して進行方向を向く
         ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 18;
-        ctx.font = '28px "Segoe UI Emoji", serif';
+        ctx.font = `28px ${EMOJI_FONT}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        // fillStyle は必ず明示（省くと直前の「+￥」の緑を引き継いだシルエットになる）
+        ctx.fillStyle = '#fbbf24';
         ctx.fillText('🚚', 0, 0);
         ctx.restore();
         ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t / 90);
-        ctx.font = '16px "Segoe UI Emoji", serif';
+        ctx.font = `16px ${EMOJI_FONT}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fde68a';
         ctx.fillText('✨', gold.x - 22, gold.y - 12);
         ctx.fillText('✨', gold.x + 22, gold.y + 12);
         ctx.globalAlpha = 1;
@@ -2831,6 +2971,94 @@ if (typeof module !== 'undefined') module.exports = Game;
   window.addEventListener('beforeunload', saveNow);
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 
+  // ================================================================
+  // 初回チュートリアル（専務が基本ループを一周させる。スキップ可・完了は端末に記録）
+  // ================================================================
+  const TUT_KEY = 'pinhane_tutorial_done';
+  // 対象は「稼ぐ→雇う→回収→強化⇔悪評→島の管理」の順。文面は S.tutorial.steps と1:1で対応する。
+  const TUTORIAL_TARGETS = ['#click-btn', '#btn-hire', '#vault-wrap', '#btn-upg', '#noto-wrap', '#collect-hint'];
+  let tutIdx = -1, tutBubble = null;
+
+  function startTutorial() { tutIdx = 0; renderTutStep(); }
+  function endTutorial() {
+    try { localStorage.setItem(TUT_KEY, '1'); } catch (e) {}
+    clearTutStep();
+    tutIdx = -1;
+  }
+  function clearTutStep() {
+    if (tutBubble) { tutBubble.remove(); tutBubble = null; }
+    document.querySelectorAll('.tut-hl').forEach(e => e.classList.remove('tut-hl'));
+  }
+  // 表示されている（実サイズを持つ）対象だけを案内する。自動回収中で隠れる #collect-hint 等は飛ばす。
+  function visibleTutTarget(sel) {
+    const e = $(sel);
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return (r.width > 0 && r.height > 0) ? e : null;
+  }
+  function renderTutStep() {
+    if (tutIdx < 0) return;
+    clearTutStep();
+    if (tutIdx >= TUTORIAL_TARGETS.length) { endTutorial(); return; }
+    const target = visibleTutTarget(TUTORIAL_TARGETS[tutIdx]);
+    if (!target) { tutIdx += 1; renderTutStep(); return; }
+    const last = tutIdx === TUTORIAL_TARGETS.length - 1;
+    target.classList.add('tut-hl');
+    tutBubble = document.createElement('div');
+    tutBubble.className = 'tut-bubble';
+    tutBubble.innerHTML = `<div class="tut-box">
+      <div class="tut-head">${S.tutorial.speaker}（${tutIdx + 1}/${TUTORIAL_TARGETS.length}）</div>
+      <div class="tut-text">${S.tutorial.steps[tutIdx]}</div>
+      <div class="tut-btns">
+        <button class="tut-next">${last ? S.tutorial.start : S.tutorial.next}</button>
+        <button class="tut-skip">${S.tutorial.skip}</button>
+      </div>
+      <div class="tut-arrow"></div>
+    </div>`;
+    document.body.appendChild(tutBubble);
+    placeTutBubble(tutBubble, target.getBoundingClientRect());
+    tutBubble.querySelector('.tut-next').onclick = () => { Sound.sfx('press'); tutIdx += 1; renderTutStep(); };
+    tutBubble.querySelector('.tut-skip').onclick = () => { Sound.sfx('press'); endTutorial(); };
+  }
+
+  // 吹き出しを「対象に重ならない空いている側」に置き、対象を指す三角を出す
+  // （レバレッジ・マスター v3.12 と同じ方式。狭い画面で対象や情報バーに被るのを防ぐ）。
+  function placeTutBubble(bubble, r) {
+    const vw = window.innerWidth, vh = window.innerHeight, M = 8, GAP = 12, A = 8;
+    const MT = 48;                                      // 固定ヘッダー（高さ44px）を避ける上端の下限
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const w = Math.min(268, vw - M * 2);
+    bubble.style.width = w + 'px';
+    const h = bubble.offsetHeight;                      // 幅を決めてから実測する
+    let left, top, dir;
+    if (r.right + w + GAP <= vw - M) {                  // 対象の右に置く（HUD・左下ボタン）
+      dir = 'left'; left = r.right + GAP; top = clamp(r.top - 10, MT, vh - h - M);
+    } else if (r.left - w - GAP >= M) {                 // 対象の左に置く（右側のサイドボタン）
+      dir = 'right'; left = r.left - w - GAP; top = clamp(r.top - 10, MT, vh - h - M);
+    } else if (r.top - h - GAP >= MT) {                 // 対象の上に置く
+      dir = 'down'; left = clamp(r.left + r.width / 2 - w / 2, M, vw - w - M); top = r.top - h - GAP;
+    } else {                                            // 対象の下に置く
+      dir = 'up'; left = clamp(r.left + r.width / 2 - w / 2, M, vw - w - M); top = clamp(r.bottom + GAP, MT, vh - h - M);
+    }
+    bubble.style.left = Math.round(left) + 'px';
+    // 上に置くときは下端を基準にする。文字が折り返して高さが伸びても上へ伸びるだけで対象に被らない。
+    if (dir === 'down') { bubble.style.top = 'auto'; bubble.style.bottom = Math.round(vh - r.top + GAP) + 'px'; }
+    else { bubble.style.bottom = 'auto'; bubble.style.top = Math.round(top) + 'px'; }
+    const ax = clamp(r.left + r.width / 2 - left, 16, w - 16);
+    const ay = clamp(r.top + r.height / 2 - top, 16, h - 16);
+    const arrow = bubble.querySelector('.tut-arrow');
+    const G = '#fbbf24';
+    if (dir === 'down')       arrow.style.cssText = `left:${ax - A}px;bottom:${-A * 2}px;border-left:${A}px solid transparent;border-right:${A}px solid transparent;border-top:${A * 2}px solid ${G};`;
+    else if (dir === 'up')    arrow.style.cssText = `left:${ax - A}px;top:${-A * 2}px;border-left:${A}px solid transparent;border-right:${A}px solid transparent;border-bottom:${A * 2}px solid ${G};`;
+    else if (dir === 'right') arrow.style.cssText = `top:${ay - A}px;right:${-A * 2}px;border-top:${A}px solid transparent;border-bottom:${A}px solid transparent;border-left:${A * 2}px solid ${G};`;
+    else                      arrow.style.cssText = `top:${ay - A}px;left:${-A * 2}px;border-top:${A}px solid transparent;border-bottom:${A}px solid transparent;border-right:${A * 2}px solid ${G};`;
+    bubble.style.visibility = 'visible';
+  }
+
+  // 画面回転・リサイズで対象の位置が変わるため、表示中のステップを置き直す
+  window.addEventListener('resize', () => { if (tutIdx >= 0) renderTutStep(); });
+  $('#help-btn').onclick = () => { Sound.sfx('press'); startTutorial(); };
+
   // ---------- 起動時 ----------
   render(bootNow);
   if (offline) {
@@ -2843,6 +3071,11 @@ if (typeof module !== 'undefined') module.exports = Game;
       <button class="modal-close" id="offline-ok">${S.ui.offlineTake}</button>`);
     m.querySelector('#offline-ok').onclick = closeModal;
   }
+  // 初回起動でだけ自動で始める。おかえりモーダルとは初回は同時に出ない（不在時間が無いため）が、
+  // 万一重なってもモーダル(z-index:90)が吹き出し(65)を覆うので、閉じてから読める。
+  let tutDone = true;
+  try { tutDone = localStorage.getItem(TUT_KEY) === '1'; } catch (e) {}
+  if (!tutDone) startTutorial();
 })();
 
 </script>
