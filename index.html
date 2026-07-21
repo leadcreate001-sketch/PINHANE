@@ -288,6 +288,110 @@ body.event-active #ticker-bar { animation: alertPulse 1s infinite; }
 }
 .stay-btn { margin-top: 10px; width: 100%; padding: 11px; border-radius: 12px; background: none; border: 1px solid var(--line); color: var(--sub); cursor: pointer; }
 
+/* ---------- タイトル画面 ---------- */
+/* 帝国の構図: 下に夜の摩天楼、その足元をワーカーが延々と流れ、そこから💰が
+   上の王冠へ吸い上がっていく。レバマスの「宇宙＋地球儀」とは別方向に振っている。 */
+#title-screen {
+  position: fixed; inset: 0; z-index: 200; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 20px 16px;
+  /* 下端は摩天楼が占めるので、その高さぶんの余白を空けて「街の上」に文字が載る形にする。
+     こうすると画面の高さが変わってもロゴが空きスペースの中央に来る。 */
+  padding-bottom: 214px;
+  background: linear-gradient(180deg, #04060e 0%, #070c1c 38%, #14121f 62%, #2b1c0c 84%, #5c3608 100%);
+  animation: ttl-fade .5s ease both;
+}
+#title-screen.leaving { animation: ttl-out .32s ease both; pointer-events: none; }
+@keyframes ttl-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ttl-out { to { opacity: 0; transform: scale(1.04); } }
+
+/* 地平の光。搾り取った金が都市を照らしている、という画。 */
+.ttl-glow { position: absolute; left: 50%; bottom: 0; width: 150%; height: 46%; transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 100%, rgba(245, 158, 11, .34) 0%, rgba(245, 158, 11, .10) 42%, transparent 72%); }
+
+/* 摩天楼のシルエット。窓はドットグリッドで灯りを表現する。 */
+/* 足元に「通り」のぶんの隙間を残し、そこをワーカーが流れる。 */
+.ttl-city { position: absolute; left: 0; right: 0; bottom: 30px; height: 178px; display: flex; align-items: flex-end;
+  justify-content: center; gap: 3px; pointer-events: none; }
+.ttl-bldg {
+  position: relative; flex: none; background-color: #05080f; border-radius: 2px 2px 0 0;
+  border-top: 1px solid rgba(251, 191, 36, .16);
+  background-image: radial-gradient(circle, rgba(251, 191, 36, .55) 0.9px, transparent 1.1px);
+  background-size: 7px 9px; background-position: 3px 6px;
+}
+/* 中央の本社ビルだけ一段高く、屋上に赤灯を置いて「帝国の中心」を示す。 */
+.ttl-bldg.hq { background-color: #070b16; border-top-color: rgba(251, 191, 36, .5); }
+.ttl-hqlight { position: absolute; top: -5px; left: 50%; transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%; background: #f87171;
+  box-shadow: 0 0 8px 2px rgba(248, 113, 113, .8); animation: ttl-blink 2.4s ease-in-out infinite; }
+@keyframes ttl-blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+
+/* 働かされ続けるワーカーの列。途切れないよう同じ並びを2本つないで流す。 */
+.ttl-crowd { position: absolute; left: 0; right: 0; bottom: 4px; height: 26px; overflow: hidden; }
+.ttl-crowd-track { display: flex; width: max-content; animation: ttl-march 22s linear infinite; }
+.ttl-crowd-half { display: flex; gap: 30px; padding-right: 30px; }
+.ttl-worker { font-size: 15px; line-height: 1; animation: ttl-trudge 1.1s ease-in-out infinite; }
+@keyframes ttl-march { to { transform: translateX(-50%); } }
+@keyframes ttl-trudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+
+/* 足元から王冠へ吸い上がる💰。これがゲームの主題（ピンハネ）そのもの。 */
+.ttl-coins { position: absolute; left: 0; right: 0; bottom: 34px; height: 340px; pointer-events: none; }
+.ttl-coin { position: absolute; bottom: 0; font-size: 14px; opacity: 0; animation: ttl-rise 5.4s ease-in infinite; }
+/* 街の足元からロゴの手前まで登り切らせる。途中で消えると「吸い上がっている」感じが出ない。 */
+@keyframes ttl-rise {
+  0%   { opacity: 0; transform: translateY(0) scale(.5); }
+  12%  { opacity: .95; }
+  62%  { opacity: .7; }
+  100% { opacity: 0; transform: translateY(-330px) scale(1.1); }
+}
+
+.ttl-logo { position: relative; z-index: 2; animation: ttl-in .9s cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes ttl-in { 0% { transform: scale(.66); opacity: 0; } 62% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+.ttl-crown { font-size: 34px; line-height: 1; filter: drop-shadow(0 0 16px rgba(251, 191, 36, .6)); animation: ttl-hover 3.4s ease-in-out infinite; }
+@keyframes ttl-hover { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.ttl-name {
+  margin-top: 10px; font-size: 42px; font-weight: 900; letter-spacing: 8px; line-height: 1.15;
+  background: linear-gradient(180deg, #fffbeb 0%, #fcd34d 42%, #f59e0b 68%, #92400e 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 12px rgba(251, 191, 36, .45));
+}
+.ttl-sub { margin-top: 10px; font-size: 11px; letter-spacing: 5px; color: #e2c98b; opacity: .9; }
+.ttl-rule { width: 200px; height: 3px; margin: 16px auto 0; border-top: 1px solid rgba(251, 191, 36, .55);
+  border-bottom: 1px solid rgba(251, 191, 36, .28); }
+.ttl-tagline { margin-top: 14px; font-size: 11.5px; color: #b8a179; letter-spacing: 1px; line-height: 1.7; }
+
+.ttl-btns { position: relative; z-index: 2; margin-top: 26px; display: flex; flex-direction: column; gap: 9px; width: 250px; max-width: 78vw; }
+.ttl-btn {
+  width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
+  font-family: inherit; font-size: 15px; font-weight: bold; color: #241704;
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  box-shadow: 0 8px 22px rgba(245, 158, 11, .32);
+  animation: ttl-pulse 1.9s ease-in-out infinite;
+}
+@keyframes ttl-pulse { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.ttl-btn.sub {
+  background: none; border: 1px solid rgba(251, 191, 36, .34); color: #e2c98b;
+  font-size: 12px; font-weight: normal; padding: 10px; box-shadow: none; animation: none;
+}
+/* 版表記は街の上（右上）へ。下端に置くとワーカーの列と重なって読めない。 */
+.ttl-foot { position: absolute; top: 12px; right: 14px; font-size: 10px; color: #6b5836; letter-spacing: 1px; }
+
+@media (max-height: 560px) {
+  #title-screen { padding-bottom: 132px; }
+  .ttl-name { font-size: 30px; letter-spacing: 5px; }
+  .ttl-crown { font-size: 24px; }
+  .ttl-rule, .ttl-tagline { display: none; }
+  .ttl-btns { margin-top: 15px; }
+  .ttl-city { height: 104px; bottom: 26px; }
+  .ttl-coins { height: 170px; bottom: 28px; animation: none; }
+  .ttl-coin { animation-name: ttl-rise-s; }
+  @keyframes ttl-rise-s {
+    0% { opacity: 0; transform: translateY(0) scale(.5); }
+    14% { opacity: .95; }
+    100% { opacity: 0; transform: translateY(-165px) scale(1.08); }
+  }
+}
+
 /* ---------- 初回チュートリアル ---------- */
 /* 対象を指す吹き出し。位置と矢印の向きはJS側が「対象に重ならない空いている側」を選んで決める。 */
 .tut-bubble { position: fixed; z-index: 65; visibility: hidden; }
@@ -436,6 +540,14 @@ const STRINGS = {
     autoExpired: '自動回収契約が終了しました。手動回収に戻ります',
     help: '❓',
     helpTitle: '遊び方をもう一度見る',
+  },
+  // タイトル画面。夜の地球から💰が吸い上がる＝ピンハネの構図をそのまま見せる。
+  titleScreen: {
+    start: 'タップしてはじめる',
+    continue: '▶ 続きから',
+    newGame: '🔁 最初からはじめる',
+    newConfirm: 'セーブデータを消して最初からはじめますか？　帝国は一夜にして消えます。',
+    tagline: '今日も誰かの取り分が、あなたの取り分になる。',
   },
   // 初回チュートリアル。専務🕴️が「稼ぐ→雇う→回収→強化⇔悪評」のループを一周させる。
   tutorial: {
@@ -1508,9 +1620,12 @@ if (typeof module !== 'undefined') module.exports = Game;
   if (!state.nextGoldenAt || state.nextGoldenAt < bootNow) Game.scheduleGolden(state, bootNow);
   Game.updateReveals(state); // 起動時は演出なしで同期
   let resetting = false;
+  let titleOpen = true;      // タイトル画面の表示中は時間を止める（メインループ参照）
 
   function saveNow() {
-    if (resetting) return;
+    // タイトル画面から始めずに離脱した場合は書き込まない（初回起動なのに
+    // 次回「続きから」が出てしまうのを防ぐ）
+    if (resetting || titleOpen) return;
     try { localStorage.setItem(SAVE_KEY, Game.save(state)); } catch (e) {}
   }
 
@@ -2941,6 +3056,9 @@ if (typeof module !== 'undefined') module.exports = Game;
   let prevAuto = state.autoCollectSec > 0;
   setInterval(() => {
     const nowMs = Date.now();
+    // タイトル画面を眺めている間は時間を進めない（放置ゲームなので、
+    // 止めないと「はじめる」前に収入が溜まり、セーブまで書き換わってしまう）。
+    if (titleOpen) { last = nowMs; return; }
     let dt = (nowMs - last) / 1000;
     last = nowMs;
     if (dt < 0) dt = 0;
@@ -3059,23 +3177,90 @@ if (typeof module !== 'undefined') module.exports = Game;
   window.addEventListener('resize', () => { if (tutIdx >= 0) renderTutStep(); });
   $('#help-btn').onclick = () => { Sound.sfx('press'); startTutorial(); };
 
+  // ================================================================
+  // タイトル画面
+  // 構図: 下に夜の摩天楼（＝帝国）、その足元をワーカーが延々と流れ、そこから💰が
+  // 上の👑へ吸い上がっていく。「働かせて、上澄みを取る」をそのまま一枚の絵にしている。
+  // ================================================================
+  function showTitle(hasSave) {
+    // 摩天楼。中央ほど高くして、真ん中の1本だけ本社ビル（赤灯付き）にする。
+    const N = 23, mid = (N - 1) / 2;
+    const bldgs = Array.from({ length: N }, (_, i) => {
+      const center = 1 - Math.abs(i - mid) / mid;                 // 中央=1, 端=0
+      const h = Math.round(30 + center * 118 + ((i * 37) % 11) * 4); // 決まった見た目にするため擬似乱数
+      const w = 20 + ((i * 53) % 4) * 6;
+      const hq = i === mid;
+      return `<div class="ttl-bldg${hq ? ' hq' : ''}" style="height:${hq ? h + 34 : h}px;width:${hq ? 34 : w}px">${hq ? '<span class="ttl-hqlight"></span>' : ''}</div>`;
+    }).join('');
+    // ワーカーの列。同じ並びを2本つないで無限スクロールさせる。
+    const line = Array.from({ length: 14 }, (_, i) =>
+      `<span class="ttl-worker" style="animation-delay:${(i * 0.17).toFixed(2)}s">${['🚲', '🛵', '🚚', '🛵', '🚲', '🕶️'][i % 6]}</span>`).join('');
+    const coins = Array.from({ length: 9 }, (_, i) =>
+      `<div class="ttl-coin" style="left:${(9 + i * 10).toFixed(0)}%;animation-delay:${(i * 0.55).toFixed(2)}s">💰</div>`).join('');
+
+    const scr = document.createElement('div');
+    scr.id = 'title-screen';
+    scr.innerHTML = `
+      <div class="ttl-glow"></div>
+      <div class="ttl-city">${bldgs}</div>
+      <div class="ttl-crowd"><div class="ttl-crowd-track">
+        <div class="ttl-crowd-half">${line}</div><div class="ttl-crowd-half">${line}</div>
+      </div></div>
+      <div class="ttl-coins">${coins}</div>
+      <div class="ttl-logo">
+        <div class="ttl-crown">👑</div>
+        <div class="ttl-name">${S.ui.title}</div>
+        <div class="ttl-sub">${S.ui.subtitle.replace(/[〜~]/g, '').trim()}</div>
+        <div class="ttl-rule"></div>
+        <div class="ttl-tagline">${S.titleScreen.tagline}</div>
+      </div>
+      <div class="ttl-btns">
+        ${hasSave
+          ? `<button class="ttl-btn" id="ttl-continue">${S.titleScreen.continue}</button>
+             <button class="ttl-btn sub" id="ttl-new">${S.titleScreen.newGame}</button>`
+          : `<button class="ttl-btn" id="ttl-start">${S.titleScreen.start}</button>`}
+      </div>
+      <div class="ttl-foot">ver ${window.APP_VERSION}${window.IS_FULL ? '' : '（無料版）'}</div>`;
+    document.body.appendChild(scr);
+
+    const enter = () => {
+      Sound.sfx('press');                                // pointerdown で BGM も走り出す
+      scr.classList.add('leaving');
+      titleOpen = false;                                 // ここから時間が動き出す
+      setTimeout(() => { scr.remove(); beginGame(); }, 320);
+    };
+    scr.querySelector('#ttl-start')?.addEventListener('click', enter);
+    scr.querySelector('#ttl-continue')?.addEventListener('click', enter);
+    scr.querySelector('#ttl-new')?.addEventListener('click', () => {
+      if (!confirm(S.titleScreen.newConfirm)) return;
+      resetting = true;
+      try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(TUT_KEY); } catch (e) {}
+      location.reload();
+    });
+  }
+
+  // タイトルを抜けた後に走る導入。おかえり→チュートリアルの順に出す。
+  function beginGame() {
+    if (offline) {
+      const reason = S.skimReasons[Math.floor(Math.random() * S.skimReasons.length)];
+      const m = openModal(`
+        <h3>💼 ${S.ui.offlineTitle}</h3>
+        <p>${S.ui.offlineGross}：<span class="num">${F(offline.gross)}</span><br>
+        ${S.ui.offlineSkim.replace('{reason}', reason)}：<span class="skim">-${F(offline.skim)}</span><br>
+        ${S.ui.offlineNet}：<span class="num">${F(offline.net)}</span></p>
+        <button class="modal-close" id="offline-ok">${S.ui.offlineTake}</button>`);
+      m.querySelector('#offline-ok').onclick = closeModal;
+    }
+    let tutDone = true;
+    try { tutDone = localStorage.getItem(TUT_KEY) === '1'; } catch (e) {}
+    if (!tutDone) startTutorial();
+  }
+
   // ---------- 起動時 ----------
   render(bootNow);
-  if (offline) {
-    const reason = S.skimReasons[Math.floor(Math.random() * S.skimReasons.length)];
-    const m = openModal(`
-      <h3>💼 ${S.ui.offlineTitle}</h3>
-      <p>${S.ui.offlineGross}：<span class="num">${F(offline.gross)}</span><br>
-      ${S.ui.offlineSkim.replace('{reason}', reason)}：<span class="skim">-${F(offline.skim)}</span><br>
-      ${S.ui.offlineNet}：<span class="num">${F(offline.net)}</span></p>
-      <button class="modal-close" id="offline-ok">${S.ui.offlineTake}</button>`);
-    m.querySelector('#offline-ok').onclick = closeModal;
-  }
-  // 初回起動でだけ自動で始める。おかえりモーダルとは初回は同時に出ない（不在時間が無いため）が、
-  // 万一重なってもモーダル(z-index:90)が吹き出し(65)を覆うので、閉じてから読める。
-  let tutDone = true;
-  try { tutDone = localStorage.getItem(TUT_KEY) === '1'; } catch (e) {}
-  if (!tutDone) startTutorial();
+  let hasSave = false;
+  try { hasSave = !!localStorage.getItem(SAVE_KEY); } catch (e) {}
+  showTitle(hasSave);
 })();
 
 </script>
